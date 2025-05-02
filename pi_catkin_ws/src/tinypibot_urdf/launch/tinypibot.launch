@@ -1,0 +1,36 @@
+<launch>
+
+  <!-- 将 urdf 文件内容设置进参数服务器 -->
+  <param name="robot_description" textfile="$(find tinypibot_urdf)/urdf/my_car_camera.urdf" />
+
+  <!-- 使用xacro优化urdf文件 -->
+  <!-- <param name="robot_description" command="$(find xacro)/xacro $(find tinypibot_urdf)/urdf/xacro/my_base.urdf.xacro" /> -->
+  <!-- <param name="robot_description" command="$(find xacro)/xacro $(find tinypibot_urdf)/urdf/xacro/my_car_camera.urdf.xacro" /> -->
+
+<!-- 配置 arbotix 节点 -->
+  <!-- <node name="arbotix" pkg="arbotix_python" type="arbotix_driver" output="screen">
+    <rosparam file="$(find tinypibot_urdf)/config/hello.yaml" command="load" />
+    <param name="sim" value="true" />
+  </node> -->
+
+
+  <!-- 启动机器人状态和关节状态发布节点 -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" />
+
+  <!-- 启动图形化的控制关节运动节点 -->
+  <node pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="joint_state_publisher_gui" />
+
+  <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+    <param name="output_frame" value="odom"/>
+    <param name="base_footprint_frame" value="base_link"/>
+    <param name="freq" value="30.0"/>
+    <param name="sensor_timeout" value="1.0"/>
+    <param name="odom_used" value="true"/>
+    <param name="imu_used" value="true"/>
+    <param name="vo_used" value="false"/>
+    <param name="debug" value="false"/>
+    <param name="self_diagnose" value="false"/>
+  </node>
+
+</launch>

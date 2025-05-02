@@ -1,0 +1,36 @@
+<launch>
+
+  <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+    <param name="output_frame" value="odom"/>
+    <param name="base_footprint_frame" value="base_footprint"/>
+    <param name="freq" value="30.0"/>
+    <param name="sensor_timeout" value="1.0"/>
+    <param name="odom_used" value="true"/>
+    <param name="imu_used" value="true"/>
+    <param name="vo_used" value="false"/>
+    <param name="debug" value="false"/>
+    <param name="self_diagnose" value="false"/>
+  </node>
+
+  <!-- 启动 karto_slam 节点 -->
+  <node name="slam_karto" pkg="slam_karto" type="slam_karto" output="screen">
+    <remap from="scan" to="/scan" />
+    <remap from="odom" to="/odom" />
+    <param name="max_range" value="10.0" />
+    <param name="sigma" value="0.05" />
+    <param name="optimize" value="true" />
+    <param name="use_scan_matching" value="true" />
+    <param name="min_travel_distance" value="0.2" />
+    <param name="min_travel_heading" value="0.15" />
+    <param name="correction_noise" value="0.05" />
+    <param name="correction_spd" value="0.1" />
+    <param name="correction_gain" value="0.2" />
+    <param name="visualization" value="true" />
+  </node>
+    
+  <!-- <node pkg="tf" type="static_transform_publisher" name="base_to_laser_broadcaster" args="0 0 0 0 0 0 /base link /laser 100" /> -->
+  <!-- <node pkg="tf" type="static transform publisher"name="odom to base" args="0 0 0 0 0 0 /odom /base link 100" /> -->
+
+</launch>
+
+

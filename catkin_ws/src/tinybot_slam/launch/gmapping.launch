@@ -1,0 +1,71 @@
+<launch>
+
+  <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+    <param name="output_frame" value="odom"/>
+    <param name="base_footprint_frame" value="base_footprint"/>
+    <param name="freq" value="30.0"/>
+    <param name="sensor_timeout" value="1.0"/>
+    <param name="odom_used" value="true"/>
+    <param name="imu_used" value="true"/>
+    <param name="vo_used" value="false"/>
+    <param name="debug" value="false"/>
+    <param name="self_diagnose" value="false"/>
+  </node>
+
+  <arg name="scan_topic"  default="scan" /> 
+  <arg name="base_frame"  default="base_link"/>
+  <arg name="odom_frame"  default="odom"/>
+
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <!-- 地图更新的一个间隔，地图更新速度，0.01s -->
+    <param name="map_update_interval" value="0.01"/>
+    <!-- 雷达的最大扫面距离，设置为雷达扫，扫描的真实距离 -->
+    <param name="maxUrange" value="6.0"/>   
+    <param name="maxRange" value="5.0"/>
+    <param name="sigma" value="0.05"/>
+    <param name="kernelSize" value="3"/>
+    <!-- optimize机器人移动的初始值（距离） -->
+    <param name="lstep" value="0.05"/>
+    <!-- optimize机器人移动的初始值（角度）-->
+    <param name="astep" value="0.05"/>
+    <!-- icp的迭代次数 -->
+    <param name="iterations" value="5"/>
+    <param name="lsigma" value="0.075"/>
+    <param name="ogain" value="3.0"/>
+    <!-- 为0,表示所有的激光都处理，尽可能为零，如果计算压力过大，可以改成1 -->
+    <param name="lskip" value="0"/>
+    <!-- 很重要，判断scanmatch是否成功的阈值，过高的话会使scanmatch失败，从而影响地图更新速率 -->
+    <param name="minimumScore" value="30"/>
+    <!-- 以下四个参数是运动模型的噪声参数 -->
+    <param name="srr" value="0.01"/>
+    <param name="srt" value="0.02"/>
+    <param name="str" value="0.01"/>
+    <param name="stt" value="0.02"/>
+    <!-- 机器人移动linearUpdate距离，进行scanmatch -->
+    <param name="linearUpdate" value="0.05"/>
+    <!-- 机器人选装angularUpdate角度，进行scanmatch -->
+    <param name="angularUpdate" value="0.0436"/> 
+    <param name="temporalUpdate" value="-1.0"/>
+    <param name="resampleThreshold" value="0.5"/>
+    <!-- 很重要，粒子个数 -->
+    <param name="particles" value="8"/>
+  
+    <!-- map 的初始大小 -->
+    <param name="xmin" value="-50.0"/>
+    <param name="ymin" value="-50.0"/>
+    <param name="xmax" value="50.0"/>
+    <param name="ymax" value="50.0"/>    
+ 
+    <!-- map resolution -->
+    <param name="delta" value="0.05"/>
+    <param name="llsamplerange" value="0.01"/>
+    <param name="llsamplestep" value="0.01"/>
+    <param name="lasamplerange" value="0.005"/>
+    <param name="lasamplestep" value="0.005"/>
+    <remap from="scan" to="$(arg scan_topic)"/>
+
+  </node>
+
+</launch>

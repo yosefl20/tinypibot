@@ -1,0 +1,27 @@
+<launch>
+
+  <include file="$(find tinypibot_urdf)/launch/tinypibot.launch" >
+  </include>
+
+  <node pkg="sc_mini" type="sc_mini" name="sc_mini" output="screen" >
+    <param name="frame_id" type="string" value="laser"/>
+    <param name="port" type="string" value="/dev/serial0"/>
+    <param name="baud_rate" type="int" value="115200"/>
+  </node>
+
+  <node pkg="i2c_rover" type="i2c_rover_node" name="i2c_rover_node" output="screen" launch-prefix="sudo">
+  </node>
+
+  <arg name="addr" default="" />
+  <remap from="/set_feedback" to="/joy/set_feedback" />
+
+  <include file="$(find ds4_driver)/launch/ds4_driver.launch" >
+    <arg name="addr" value="$(arg addr)" />
+    <arg name="use_standard_msgs" value="true" />
+    <arg name="autorepeat_rate" value="20" />
+  </include>
+
+
+
+</launch>
+<!-- usermod -a -G i2c pi -->

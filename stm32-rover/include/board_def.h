@@ -1,0 +1,33 @@
+#pragma once
+#ifndef _BOARD_DEF_H_
+#define _BOARD_DEF_H_
+
+#define ULTRA_SONIC_TRIG_PIN PB0
+#define ULTRA_SONIC_ECHO_PIN PB1
+
+#define TB6612_AIN2_PIN PB15
+#define TB6612_AIN1_PIN PB14
+#define TB6612_BIN2_PIN PB12
+#define TB6612_BIN1_PIN PB13
+#define TB6612_ENA_PIN PA2
+#define TB6612_ENB_PIN PA3
+
+#define BATT_PIN_PIN PA0
+#define LED_PIN_PIN PC13
+
+#define MA_ENC_A_PIN PA6
+#define MA_ENC_B_PIN PA7
+#define MB_ENC_A_PIN PB6
+#define MB_ENC_B_PIN PB7
+
+#define MA_TIMER_ID TIM4
+#define MB_TIMER_ID TIM3
+
+#define PI_TX_PIN PA9
+#define PI_RX_PIN PA10
+
+#define I2C_SDA_PIN PB9
+#define I2C_SCL_PIN PB8
+#define I2C_SLAVE_ADDR (0x11)
+
+#endif //_BOARD_DEF_H_
