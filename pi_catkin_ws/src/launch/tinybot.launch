@@ -1,8 +1,5 @@
 <launch>
 
-  <include file="$(find tinypibot_urdf)/launch/tinypibot.launch" >
-  </include>
-
   <node pkg="sc_mini" type="sc_mini" name="sc_mini" output="screen" >
     <param name="frame_id" type="string" value="laser"/>
     <param name="port" type="string" value="/dev/serial0"/>
@@ -15,11 +12,14 @@
   <arg name="addr" default="" />
   <remap from="/set_feedback" to="/joy/set_feedback" />
 
-  <include file="$(find ds4_driver)/launch/ds4_driver.launch" >
+  <include file="$(find tinypibot_urdf)/launch/tinypibot.launch" >
+  </include>
+
+  <!-- <include file="$(find ds4_driver)/launch/ds4_driver.launch" >
     <arg name="addr" value="$(arg addr)" />
     <arg name="use_standard_msgs" value="true" />
     <arg name="autorepeat_rate" value="20" />
-  </include>
+  </include> -->
 
 
 

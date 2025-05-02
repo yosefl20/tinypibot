@@ -223,21 +223,25 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
     I2Cdev::readBytes(ROVER_SLAVE_ADDRESS, 0x85, 4, (uint8_t *)&tmp);
     right_pulse = tmp & 0x0000ffff;
     left_pulse = tmp >> 16;
-    if (left_pulse != 0 || right_pulse != 0)
-      ROS_INFO("got %d / %d", left_pulse, right_pulse);
-
     double dleft =
-        left_pulse * M_PI * wheelSize /
+        left_pulse * dtime * M_PI * wheelSize /
         TICKS_PER_CYCLE; // 计算左轮一周期内的运动路程，一圈为11*48个脉冲值
-    double dright = right_pulse * M_PI * wheelSize /
+    double dright = right_pulse * dtime * M_PI * wheelSize /
                     TICKS_PER_CYCLE; // 计算右轮一周期内的运动路程
-    double dth = (dleft - dright) / bodyWidth;
+
+    double vth = (dleft - dright) / bodyWidth;
     double vx = (dleft + dright) / 2.0;
     double vy = 0.0;
-    double vth = dth;
-    x += vx * cos(th + vth / 2.0);
-    y += vx * sin(th + vth / 2.0);
-    th += dth;
+    x += vx * cos(th + vth);
+    y += vx * sin(th + vth);
+    th += vth;
+    th = fmod(th, 2.0f * M_PI);
+
+    if (left_pulse != 0 || right_pulse != 0) {
+      ROS_INFO("got %d / %d, %f / %f", left_pulse, right_pulse, dleft, dright);
+      ROS_INFO("vx = %f, vth = %f, (x, y, th) = (%f, %f, %f)", vx, vth, x, y,
+               th);
+    }
 
     publish_odom(odomPub, tfbc, x, y, th, vx, vy, vth, current_time);
   }
