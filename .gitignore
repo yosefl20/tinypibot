@@ -4,6 +4,7 @@ videos
 pid-rover
 .pio
 bagfiles
+maps
 build
 devel
 install

@@ -229,21 +229,20 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
     double dright = right_pulse * dtime * M_PI * wheelSize /
                     TICKS_PER_CYCLE; // 计算右轮一周期内的运动路程
 
-    double vth = (dleft - dright) / bodyWidth;
-    double vx = (dleft + dright) / 2.0;
-    double vy = 0.0;
-    x += vx * cos(th + vth);
-    y += vx * sin(th + vth);
+    double vth = (dright - dleft) / bodyWidth;
+    double vxy = (dleft + dright) / 2.0;
+    x += vxy * cos(th + vth * 0.5f);
+    y += vxy * sin(th + vth * 0.5f);
     th += vth;
-    th = fmod(th, 2.0f * M_PI);
+    // th = fmod(th, 2.0f * M_PI);
 
     if (left_pulse != 0 || right_pulse != 0) {
       ROS_INFO("got %d / %d, %f / %f", left_pulse, right_pulse, dleft, dright);
-      ROS_INFO("vx = %f, vth = %f, (x, y, th) = (%f, %f, %f)", vx, vth, x, y,
+      ROS_INFO("vxy = %f, vth = %f, (x, y, th) = (%f, %f, %f)", vxy, vth, x, y,
                th);
     }
 
-    publish_odom(odomPub, tfbc, x, y, th, vx, vy, vth, current_time);
+    publish_odom(odomPub, tfbc, x, y, th, vxy, 0, vth, current_time);
   }
   last_time = current_time;
 }
@@ -264,7 +263,7 @@ int main(int argc, char **argv) {
 
   ROS_INFO("initializing node...");
 
-  ros::init(argc, argv, "listener");
+  ros::init(argc, argv, "pi_rover");
   ros::NodeHandle n;
   ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
   ros::Publisher range_pub = n.advertise<sensor_msgs::Range>("ultrasound", 50);
@@ -355,7 +354,6 @@ int main(int argc, char **argv) {
   ros::Rate loop_rate(25);
   ROS_INFO("spin.");
   while (ros::ok()) {
-    ros::spinOnce();
     updateChasis(odom_pub, range_pub, odom_broadcaster);
 
     sensor_msgs::Imu imu_data;
@@ -382,6 +380,7 @@ int main(int argc, char **argv) {
 
     mpu_pub.publish(imu_data);
 
+    ros::spinOnce();
     loop_rate.sleep();
   }
   ros::shutdown();

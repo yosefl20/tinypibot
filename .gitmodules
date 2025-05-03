@@ -1,0 +1,6 @@
+[submodule "catkin_ws/src/cartographer"]
+	path = catkin_ws/src/cartographer
+	url = https://github.com/cartographer-project/cartographer.git
+[submodule "catkin_ws/src/cartographer_ros"]
+	path = catkin_ws/src/cartographer_ros
+	url = https://github.com/cartographer-project/cartographer_ros.git
