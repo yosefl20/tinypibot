@@ -199,7 +199,7 @@ void RoverTask::updatePID() {
 
 void RoverTask::applyPID() {
 
-  if (m_InputA == 0 && m_InputB == 0 && m_SetpointA == 0 && m_SetpointB == 0) {
+  if (fabs(m_SetpointA) < 1e-5 && fabs(m_SetpointB) < 1e-5) {
     m_activePID = false;
     m_motorA.stop();
     m_motorB.stop();

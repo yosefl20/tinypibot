@@ -8,7 +8,7 @@
 
   <node pkg="i2c_rover" type="i2c_rover_node" name="i2c_rover_node" output="screen" launch-prefix="sudo">
   </node>
-  
+
   <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
     <param name="output_frame" value="odom"/>
     <param name="base_footprint_frame" value="base_link"/>
@@ -19,6 +19,7 @@
     <param name="vo_used" value="false"/>
     <param name="debug" value="false"/>
     <param name="self_diagnose" value="false"/>
+    <remap from="imu/data_raw" to="imu" />
   </node>
 
   <arg name="addr" default="" />

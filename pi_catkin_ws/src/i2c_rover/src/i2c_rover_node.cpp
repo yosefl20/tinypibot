@@ -22,6 +22,7 @@
 #define ROVER_SLAVE_ADDRESS 0x11
 
 static int8_t g_leftThrottle = 0, g_rightThrottle = 0;
+static int8_t g_leftTicksPerSec = 0, g_rightTicksPerSec = 0;
 static bool g_throttleChanged = false;
 static const float gravity_value = 9.81;
 static const float deg_to_rad_factor = M_PI / 180.0;
@@ -91,7 +92,7 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
         msg.linear.x + (msg.angular.z * wheelDistance) / 2.0;
 
     // 发送指令
-    uint8_t buf[4];
+    int8_t buf[4];
     buf[1] = 0x05;
 
     // t0
@@ -110,7 +111,11 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
     ROS_INFO("set pid1 speed: %d ticks/s", tps);
     buf[2] = tps;
 
-    I2Cdev::writeBytes(ROVER_SLAVE_ADDRESS, 0x04, 3, buf);
+    if (g_leftTicksPerSec != buf[0] && g_rightTicksPerSec != buf[2]) {
+      g_leftTicksPerSec = buf[0];
+      g_rightTicksPerSec = buf[2];
+      I2Cdev::writeBytes(ROVER_SLAVE_ADDRESS, 0x04, 3, (uint8_t *)buf);
+    }
   } else {
     int8_t left = (int8_t)(maxThrottle * msg.linear.x -
                            maxThrottle * msg.angular.z * 0.5f);
@@ -236,11 +241,12 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
     th += vth;
     // th = fmod(th, 2.0f * M_PI);
 
-    if (left_pulse != 0 || right_pulse != 0) {
-      ROS_INFO("got %d / %d, %f / %f", left_pulse, right_pulse, dleft, dright);
-      ROS_INFO("vxy = %f, vth = %f, (x, y, th) = (%f, %f, %f)", vxy, vth, x, y,
-               th);
-    }
+    // if (left_pulse != 0 || right_pulse != 0) {
+    //   ROS_INFO("got %d / %d, %f / %f", left_pulse, right_pulse, dleft,
+    //   dright); ROS_INFO("vxy = %f, vth = %f, (x, y, th) = (%f, %f, %f)", vxy,
+    //   vth, x, y,
+    //            th);
+    // }
 
     publish_odom(odomPub, tfbc, x, y, th, vxy, 0, vth, current_time);
   }
