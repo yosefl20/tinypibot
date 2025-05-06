@@ -58,7 +58,7 @@ void I2cTask::onI2CRequestEvent() {
     break;
   case 0x83:
     // 获取超声波读数
-    // value = distance;
+    value = ultrasonicTask.distance();
     break;
   case 0x84:
     // 获取电池电压
@@ -110,7 +110,6 @@ void I2cTask::onI2CData(int bytesCount) {
       }
       case 0x06: {
         // 设置PID
-        roverTask.enablePID(c > 0);
         break;
       }
       default:

@@ -18,8 +18,11 @@ public:
   void setup();
   unsigned long loop(MicroTasks::WakeReason reason);
 
+  inline unsigned int distance() const { return m_distance; }
+
 private:
   Ultrasonic m_sensor1;
+  unsigned int m_distance;
 };
 
 #endif //_ULTRASONIC_TASK_H_

@@ -26,8 +26,7 @@ public:
   inline int16_t leftSpeed() const { return m_leftSpeed; }
   inline int16_t rightSpeed() const { return m_rightSpeed; }
 
-  inline void enablePID(bool b) { m_activePID = b; }
-  inline bool isPidEnabled() const { return m_activePID; }
+  inline bool isPidEnabled() { return m_pidA.GetMode() && m_pidB.GetMode(); }
   inline void setPIDParams(double p, double i, double d) {
     m_Kp = p;
     m_Kd = d;
@@ -57,10 +56,9 @@ private:
   unsigned long m_tmUpdateSpeed;
 
   // PID状态
-  bool m_activePID;
   // Define Variables we'll be connecting to
-  double m_SetpointA, m_InputA, m_OutputA, m_PowA;
-  double m_SetpointB, m_InputB, m_OutputB, m_PowB;
+  double m_SetpointA, m_InputA, m_OutputA;
+  double m_SetpointB, m_InputB, m_OutputB;
   const long m_cycleTM;
   // Specify the links and initial tuning parameters
   double m_Kp, m_Ki, m_Kd;

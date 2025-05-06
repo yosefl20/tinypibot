@@ -208,7 +208,7 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
 
     // ultrasonic
     // ROS_INFO("updateChasis reading ultrasonic");
-    int32_t distance = -1; // cm
+    uint32_t distance = -1; // cm
     I2Cdev::readBytes(ROVER_SLAVE_ADDRESS, 0x83, 4, (uint8_t *)&distance);
     // ROS_INFO("got %d", distance);
     sensor_msgs::Range range_msg;

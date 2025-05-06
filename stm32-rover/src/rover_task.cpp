@@ -13,10 +13,10 @@ RoverTask::RoverTask()
       m_encoderA(MA_TIMER_ID), m_encoderB(MB_TIMER_ID), m_leftThrottle(0),
       m_rightThrottle(0), m_leftSpeed(0), m_rightSpeed(0), m_cycleTM(100),
       // Specify the links and initial tuning parameters
-      m_Kp(0.03), m_Ki(0.02), m_Kd(0.002),
+      // m_Kp(0.1), m_Ki(0.03), m_Kd(0.002),
+      m_Kp(0.05), m_Ki(0.2), m_Kd(0.001),
       m_pidA(&m_InputA, &m_OutputA, &m_SetpointA, m_Kp, m_Ki, m_Kd, DIRECT),
-      m_pidB(&m_InputB, &m_OutputB, &m_SetpointB, m_Kp, m_Ki, m_Kd, DIRECT),
-      m_activePID(false) {}
+      m_pidB(&m_InputB, &m_OutputB, &m_SetpointB, m_Kp, m_Ki, m_Kd, DIRECT) {}
 
 RoverTask::~RoverTask() {}
 
@@ -73,7 +73,9 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
         resetEncoderPos();
       } break;
       case LinearSpeedMessage::ID: {
-        m_activePID = true;
+        m_pidA.SetMode(AUTOMATIC);
+        m_pidB.SetMode(AUTOMATIC);
+
         LinearSpeedMessage *_msg = (LinearSpeedMessage *)msg;
         Serial.print("LinearSpeedMessage, motor = ");
         Serial.print(_msg->m_motorId);
@@ -85,7 +87,9 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
           m_SetpointB = _msg->m_linearSpeed;
       } break;
       case ThrottleMessage::ID: {
-        m_activePID = false;
+        m_pidA.SetMode(MANUAL);
+        m_pidB.SetMode(MANUAL);
+        // m_PowA = m_PowB = m_OutputA = m_OutputB = 0;
         ThrottleMessage *_msg = (ThrottleMessage *)msg;
         Serial.print("ThrottleMessage, type = ");
         Serial.print(_msg->m_type);
@@ -99,10 +103,8 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
             _msg->m_type == ThrottleMessage::TMT_BOTH) {
           m_rightThrottle = _msg->m_throttle;
         }
-        if (!m_activePID) {
-          m_motorA.setSpeedPWMAndDirection(m_leftThrottle);
-          m_motorB.setSpeedPWMAndDirection(m_rightThrottle);
-        }
+        m_OutputA = m_leftThrottle;
+        m_OutputB = m_rightThrottle;
       }
       default: {
         Serial.println("UNKNOWN");
@@ -128,12 +130,10 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
       Serial.print(" / ");
       Serial.println(m_rightSpeed);
     }
-
-    if (m_activePID) {
-      updatePID();
-      applyPID();
-    }
   }
+
+  updatePID();
+  applyPID();
 
   return m_cycleTM;
 }
@@ -151,7 +151,7 @@ void RoverTask::initPID() {
   m_pidA.SetMode(AUTOMATIC);
   m_pidB.SetOutputLimits(-255, 255);
   m_pidB.SetMode(AUTOMATIC);
-  m_PowA = m_PowB = m_OutputA = m_OutputB = 0;
+  m_OutputA = m_OutputB = 0;
 }
 
 void RoverTask::updatePID() {
@@ -168,13 +168,6 @@ void RoverTask::updatePID() {
 
   m_pidA.Compute();
   m_pidB.Compute();
-  m_PowA += m_OutputA;
-  m_PowA = max(m_PowA, -255.0);
-  m_PowA = min(m_PowA, 255.0);
-
-  m_PowB += m_OutputB;
-  m_PowB = max(m_PowB, -255.0);
-  m_PowB = min(m_PowB, 255.0);
 
   // debug output
   Serial.print("SetPoint = (");
@@ -189,10 +182,6 @@ void RoverTask::updatePID() {
   Serial.print(m_OutputA);
   Serial.print(" , ");
   Serial.print(m_OutputB);
-  Serial.print(")  /  Pow = (");
-  Serial.print(m_PowA);
-  Serial.print(" , ");
-  Serial.print(m_PowB);
   Serial.println(")");
   Serial.println("RoverTask updatePID done");
 }
@@ -200,21 +189,17 @@ void RoverTask::updatePID() {
 void RoverTask::applyPID() {
 
   if (fabs(m_SetpointA) < 1e-5 && fabs(m_SetpointB) < 1e-5) {
-    m_activePID = false;
-    m_motorA.stop();
-    m_motorB.stop();
+    m_pidA.SetMode(MANUAL);
+    m_pidB.SetMode(MANUAL);
+    m_OutputA = m_OutputB = 0;
     Serial.println("rover stopped");
-    return;
   }
 
-  m_motorA.setSpeedPWMAndDirection(m_PowA);
-  m_motorB.setSpeedPWMAndDirection(m_PowB);
-
-  const float tmp = M_PI * WHEEL_SIZE / 60.0;
-  float linear = (m_InputA + m_InputB) * tmp;
-  float angular = 0.0;
-
-  // publish odom
-  // g_bleTask.send(new OdomMessage(linear, angular));
-  // g_spiSlaveTask.send(new OdomMessage(linear, angular));
+  if (fabs(m_OutputA) < 1e-5 && fabs(m_OutputB) < 1e-5) {
+    m_motorA.stop();
+    m_motorB.stop();
+  } else {
+    m_motorA.setSpeedPWMAndDirection(m_OutputA * 0.702f);
+    m_motorB.setSpeedPWMAndDirection(m_OutputB);
+  }
 }

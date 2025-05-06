@@ -15,8 +15,12 @@
 
 
   <!-- 启动机器人状态和关节状态发布节点 -->
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
-  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" />
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" value="10"/>
+  </node>
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
+    <param name="rate" value="10"/>
+  </node>
 
   <!-- 启动图形化的控制关节运动节点 -->
   <!-- <node pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="joint_state_publisher_gui" /> -->
