@@ -53,34 +53,12 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        back_wheel:
-          Value: true
-        base_footprint:
-          Value: true
-        base_link:
-          Value: true
-        camera:
-          Value: true
-        front_wheel:
-          Value: true
-        laser:
-          Value: true
-        left_wheel:
-          Value: true
-        map:
-          Value: true
-        odom:
-          Value: true
-        right_wheel:
-          Value: true
-        support:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -88,26 +66,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          odom:
-            base_link:
-              back_wheel:
-                {}
-              base_footprint:
-                {}
-              camera:
-                {}
-              front_wheel:
-                {}
-              left_wheel:
-                {}
-              right_wheel:
-                {}
-              support:
-                laser:
-                  {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -387,7 +348,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 266.944580078125
+      Scale: 230.7064208984375
       Target Frame: <Fixed Frame>
       X: 51.16622543334961
       Y: 50.58919906616211

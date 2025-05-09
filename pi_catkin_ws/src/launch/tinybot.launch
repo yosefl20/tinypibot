@@ -39,11 +39,11 @@
   <!-- <include file="$(find raspicam_node)/launch/camerav1_1280x720.launch" /> -->
 
 
-  <!-- <include file="$(find ds4_driver)/launch/ds4_driver.launch" >
+  <include file="$(find ds4_driver)/launch/ds4_driver.launch" >
     <arg name="addr" value="$(arg addr)" />
     <arg name="use_standard_msgs" value="true" />
     <arg name="autorepeat_rate" value="20" />
-  </include> -->
+  </include>
 
 
 
