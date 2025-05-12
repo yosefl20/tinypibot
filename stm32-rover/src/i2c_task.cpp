@@ -40,7 +40,11 @@ void I2cTask::setup() {
   Serial.println("i2c task started.");
 }
 
-unsigned long I2cTask::loop(MicroTasks::WakeReason reason) { return INFINITY; }
+unsigned long I2cTask::loop(MicroTasks::WakeReason reason) {
+  Serial.println("i2ctask loop begin.");
+  Serial.println("i2ctask loop end.");
+  return INFINITY;
+}
 
 // ----------------------------------
 
@@ -66,7 +70,8 @@ void I2cTask::onI2CRequestEvent() {
     break;
   case 0x85:
     // 获取编码器A(H)B(L)速度
-    value = (roverTask.leftSpeed() << 16) + roverTask.rightSpeed();
+    value = ((int16_t)roverTask.leftSpeed() << 16) +
+            (int16_t)roverTask.rightSpeed();
     break;
   case 0x86:
     // 获取PID激活状态

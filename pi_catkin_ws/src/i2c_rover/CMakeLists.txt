@@ -149,6 +149,19 @@ add_executable(
   src/mpu6050/thread.cpp
 )
 
+add_executable(
+  uart_rover_node
+  src/uart_rover_node.cpp
+  src/i2cdev/I2Cdev.cpp
+  # src/i2cdev/I2Cdev_smbus.cpp
+  src/mpu6050/dragon.cpp
+  src/mpu6050/glove_state.cpp
+  src/mpu6050/glove.cpp
+  src/mpu6050/MPU6050_6Axis_MotionApps20.cpp
+  src/mpu6050/MPU6050.cpp
+  src/mpu6050/thread.cpp
+)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -163,6 +176,13 @@ add_executable(
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   bcm2835
+  # i2c
+)
+
+target_link_libraries(uart_rover_node
+  ${catkin_LIBRARIES}
+  bcm2835
+  serial
   # i2c
 )
 

@@ -3,9 +3,14 @@
 #include <PWMDcMotor.hpp>
 
 #include "msgs.h"
+#include "uart_task.h"
 
 #define WHEEL_SIZE 68.0  // mm
 #define BODY_WIDTH 150.0 // mm
+
+// #define ENABLE_DEBUG_MESSAGE
+
+extern UartTask uartTask;
 
 RoverTask::RoverTask()
     : m_motorA(TB6612_AIN1_PIN, TB6612_AIN2_PIN, TB6612_ENA_PIN),
@@ -54,6 +59,8 @@ void RoverTask::setup() {
 
 unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
 
+  // Serial.println("RoverTask loop begin.");
+#ifdef ENABLE_DEBUG_MESSAGE
   if (reason != WakeReason_Scheduled) {
     Serial.print("RoverTask woke: ");
     Serial.println(WakeReason_Scheduled == reason ? "WakeReason_Scheduled"
@@ -62,6 +69,7 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
                    : WakeReason_Manual == reason  ? "WakeReason_Manual"
                                                   : "UNKNOWN");
   }
+#endif
 
   if (WakeReason_Message == reason) {
     MicroTasks::Message *msg;
@@ -118,8 +126,12 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
   unsigned long t = millis();
   if (t > m_tmUpdateSpeed) {
     float dt = t - m_tmUpdateSpeed;
-    m_leftSpeed = (float)m_encoderA.pos() * 1000.0f / dt;
-    m_rightSpeed = (float)m_encoderB.pos() * (-1000.0f) / dt;
+    int32_t left_pos = m_encoderA.pos();
+    int32_t right_pos = m_encoderB.pos();
+    // send pos to uart
+    uartTask.send(new EncoderPositionMessage(left_pos, right_pos));
+    m_leftSpeed = (float)left_pos * 1000.0f / dt;
+    m_rightSpeed = (float)right_pos * (-1000.0f) / dt;
     m_encoderA.pos(0);
     m_encoderB.pos(0);
     m_tmUpdateSpeed = t;
@@ -135,6 +147,7 @@ unsigned long RoverTask::loop(MicroTasks::WakeReason reason) {
   updatePID();
   applyPID();
 
+  // Serial.println("RoverTask loop end.");
   return m_cycleTM;
 }
 
@@ -156,19 +169,24 @@ void RoverTask::initPID() {
 
 void RoverTask::updatePID() {
 
+#ifdef ENABLE_DEBUG_MESSAGE
   Serial.println("RoverTask updatePID begin");
+#endif
 
   m_InputA = m_leftSpeed;
   m_InputB = m_rightSpeed;
 
+#ifdef ENABLE_DEBUG_MESSAGE
   Serial.print("speed = ");
   Serial.print(m_InputA);
   Serial.print(" / ");
   Serial.println(m_InputB);
+#endif
 
   m_pidA.Compute();
   m_pidB.Compute();
 
+#ifdef ENABLE_DEBUG_MESSAGE
   // debug output
   Serial.print("SetPoint = (");
   Serial.print(m_SetpointA);
@@ -184,6 +202,7 @@ void RoverTask::updatePID() {
   Serial.print(m_OutputB);
   Serial.println(")");
   Serial.println("RoverTask updatePID done");
+#endif
 }
 
 void RoverTask::applyPID() {
@@ -192,7 +211,9 @@ void RoverTask::applyPID() {
     m_pidA.SetMode(MANUAL);
     m_pidB.SetMode(MANUAL);
     m_OutputA = m_OutputB = 0;
+#ifdef ENABLE_DEBUG_MESSAGE
     Serial.println("rover stopped");
+#endif
   }
 
   if (fabs(m_OutputA) < 1e-5 && fabs(m_OutputB) < 1e-5) {

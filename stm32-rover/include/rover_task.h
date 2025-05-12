@@ -23,8 +23,8 @@ public:
   inline STM32encoder &leftEncoder() { return m_encoderA; }
   inline STM32encoder &rightEncoder() { return m_encoderB; }
 
-  inline int16_t leftSpeed() const { return m_leftSpeed; }
-  inline int16_t rightSpeed() const { return m_rightSpeed; }
+  inline float leftSpeed() const { return m_leftSpeed; }
+  inline float rightSpeed() const { return m_rightSpeed; }
 
   inline bool isPidEnabled() { return m_pidA.GetMode() && m_pidB.GetMode(); }
   inline void setPIDParams(double p, double i, double d) {

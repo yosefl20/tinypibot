@@ -30,8 +30,8 @@
     </visual>
   </link>
   <joint name="base_link2base_footprint" type="fixed">
-    <parent link="base_link"/>
-    <child link="base_footprint"/>
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
     <origin xyz="0 0 0.055"/>
   </joint>
   <link name="left_wheel">

@@ -6,8 +6,8 @@
     <param name="baud_rate" type="int" value="115200"/>
   </node>
 
-  <node pkg="i2c_rover" type="i2c_rover_node" name="i2c_rover_node" output="screen" launch-prefix="sudo">
-  </node>
+  <node pkg="i2c_rover" type="uart_rover_node" name="uart_rover_node" output="screen" launch-prefix="sudo"/>
+  <!-- <node pkg="i2c_rover" type="i2c_rover_node" name="i2c_rover_node" output="screen" launch-prefix="sudo"/> -->
 
   <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
     <param name="output_frame" value="odom"/>

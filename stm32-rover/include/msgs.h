@@ -50,4 +50,31 @@ public:
   int8_t m_throttle;
 };
 
+// ----------------------------------------------------------------
+class EncoderPositionMessage : public SimpleMessage<1005> {
+public:
+  EncoderPositionMessage(int32_t left, int32_t right);
+
+  int32_t m_left;
+  int32_t m_right;
+};
+
+// ----------------------------------------------------------------
+class DistanceMessage : public SimpleMessage<1006> {
+public:
+  DistanceMessage(int16_t distance0, int16_t distance1, int16_t distance2,
+                  int16_t distance3);
+
+  int16_t m_distances[4];
+};
+
+// ----------------------------------------------------------------
+class BatteryMessage : public SimpleMessage<1007> {
+public:
+  BatteryMessage(int32_t mV);
+
+  float m_mV;
+  float m_percent;
+};
+
 #endif //_MSGS_H_

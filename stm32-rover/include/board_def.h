@@ -23,8 +23,8 @@
 #define MA_TIMER_ID TIM4
 #define MB_TIMER_ID TIM3
 
-#define PI_TX_PIN PA9
-#define PI_RX_PIN PA10
+#define PI_TX_PIN PB11
+#define PI_RX_PIN PB10
 
 #define I2C_SDA_PIN PB9
 #define I2C_SCL_PIN PB8

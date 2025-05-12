@@ -20,10 +20,11 @@ void LedTask::setup() {
 unsigned long LedTask::loop(MicroTasks::WakeReason reason) {
 
   // blinking in 1Hz
+  // Serial.println("led loop begin.");
   if (m_isOn)
     ledOff();
   else
     ledOn();
-
+  // Serial.println("led loop end.");
   return 1000;
 }
