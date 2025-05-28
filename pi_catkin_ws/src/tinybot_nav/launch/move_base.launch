@@ -2,7 +2,8 @@
   <master auto="start"/>
 
   <!-- Run the map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find tinybot_nav)/maps/myhome.pgm 0.050000"/>
+  <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find tinybot_nav)/maps/myhome.pgm 0.050000"/> -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find tinybot_nav)/maps/studio_f2.pgm 0.050000"/>
 
   <!--- Run AMCL -->
   <include file="$(find tinybot_nav)/launch/amcl_diff.launch" />
@@ -13,6 +14,6 @@
     <rosparam file="$(find tinybot_nav)/config/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find tinybot_nav)/config/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find tinybot_nav)/config/base_local_planner_params.yaml" command="load" />
-    <param name="controller_frequency" value="10.0" />
+    <param name="controller_frequency" value="3.0" />
   </node>
 </launch>

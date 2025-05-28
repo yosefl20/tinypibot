@@ -99,7 +99,7 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
     float t = out_wheel1_speed * TICKS_PER_CYCLE /
               (M_PI * wheelSize); // 把 m/s 转为 10xticks/s
     int8_t tps = t > 127.0f ? 127 : (t < -127.0f ? -127 : t); // 换算成ticks/sec
-    ROS_INFO("t0: %f ticks/s", t);
+    // ROS_INFO("t0: %f ticks/s", t);
     ROS_INFO("set pid0 speed: %d ticks/s", tps);
     buf[0] = tps;
 
@@ -107,7 +107,7 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
     t = out_wheel2_speed * TICKS_PER_CYCLE /
         (M_PI * wheelSize);                            // 把 m/s 转为 10xticks/s
     tps = t > 127.0f ? 127 : (t < -127.0f ? -127 : t); // 换算成ticks/sec
-    ROS_INFO("t1: %f ticks/s", t);
+    // ROS_INFO("t1: %f ticks/s", t);
     ROS_INFO("set pid1 speed: %d ticks/s", tps);
     buf[2] = tps;
 

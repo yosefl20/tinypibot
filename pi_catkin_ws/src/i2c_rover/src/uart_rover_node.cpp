@@ -13,6 +13,7 @@
 #include <iostream>
 #include <libserial/SerialPort.h>
 #include <nav_msgs/Odometry.h>
+#include <signal.h>
 #include <span>
 #include <sstream>
 #include <tf/tf.h>
@@ -59,6 +60,25 @@ static uint8_t calcCheckSum(const UartPacket &packet) {
   return val & 0xff;
 }
 
+static void sigintHandler(int sig) {
+
+  printf("Tinybot shutdown...\n");
+
+  if (g_roverSerial.IsOpen()) {
+    // stop wheels
+    UartPacket packet;
+    packet.header = PACKET_HEADER;
+    packet.cmd = 0x02;
+    packet.payload.f32Array[0] = 0;
+    packet.payload.f32Array[1] = 0;
+    packet.checkSum = calcCheckSum(packet);
+    uint8_t *ptr = (uint8_t *)&packet;
+    g_roverSerial.Write(DataBuffer(ptr, ptr + UART_PACKET_LEN));
+    g_roverSerial.Close();
+  }
+  ros::shutdown();
+}
+
 static void debugPrintPacket(const UartPacket &packet) {
   ROS_INFO("UART PACKET: \n\
      header: 0x%02X\n\
@@ -91,32 +111,6 @@ void inputCallback(const std_msgs::String::ConstPtr &msg) {
   }
 }
 
-void joyInputCallback(const sensor_msgs::Joy::ConstPtr &msg) {
-
-  const float maxThrottle = 100.0f;
-  // ROS_INFO("joy msg: axes [%f, %f]", msg->axes[0], msg->axes[2]);
-  int8_t tmp;
-  if (fabs(msg->axes[1]) < 1e-5)
-    tmp = 0;
-  else
-    tmp = (int8_t)(msg->axes[1] * maxThrottle);
-
-  if (tmp != g_leftThrottle) {
-    g_leftThrottle = tmp;
-    g_throttleChanged = true;
-  }
-
-  if (fabs(msg->axes[2]) < 1e-5)
-    tmp = 0;
-  else
-    tmp = (int8_t)(msg->axes[2] * maxThrottle * 0.5);
-
-  if (tmp != g_rightThrottle) {
-    g_rightThrottle = tmp;
-    g_throttleChanged = true;
-  }
-}
-
 void cmdVelCallback(const geometry_msgs::Twist &msg) {
 
   const float maxThrottle = 64.0f;
@@ -129,10 +123,8 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
     // 二轮差速运动学逆解
     const float wheelSize = 0.068f; // 0.068m
     const float wheelDistance = 0.114f;
-    float out_wheel1_speed =
-        msg.linear.x - (msg.angular.z * wheelDistance) / 2.0;
-    float out_wheel2_speed =
-        msg.linear.x + (msg.angular.z * wheelDistance) / 2.0;
+    float out_wheel1_speed = msg.linear.x - msg.angular.z * wheelDistance / 2.0;
+    float out_wheel2_speed = msg.linear.x + msg.angular.z * wheelDistance / 2.0;
 
     // 发送指令
     UartPacket packet;
@@ -140,8 +132,9 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
     packet.cmd = 0x02;
 
     // t0
-    packet.payload.f32Array[0] = out_wheel1_speed * TICKS_PER_CYCLE /
-                                 (M_PI * wheelSize); // 把 m/s 转为 ticks/s
+    packet.payload.f32Array[0] =
+        out_wheel1_speed * TICKS_PER_CYCLE / (M_PI * wheelSize);
+    // * 0.702f); // 把 m/s 转为 ticks/s, 0.702=左右轮差速系数
     packet.payload.f32Array[1] = out_wheel2_speed * TICKS_PER_CYCLE /
                                  (M_PI * wheelSize); // 把 m/s 转为 ticks/s
     // ROS_INFO("t0: %f ticks/s", packet.payload.f32Array[0]);
@@ -192,7 +185,7 @@ void publish_odom(ros::Publisher &odomPub, tf2_ros::TransformBroadcaster &tfbc,
 
   odom.header.stamp = current_time;
   odom.header.frame_id = "odom";
-  odom.child_frame_id = "base_link"; // set the position
+  odom.child_frame_id = "base_footprint"; // set the position
   odom.pose.pose.position.x = x;
   odom.pose.pose.position.y = y;
   odom.pose.pose.position.z = 0.0;
@@ -200,6 +193,14 @@ void publish_odom(ros::Publisher &odomPub, tf2_ros::TransformBroadcaster &tfbc,
   odom.twist.twist.linear.x = vx;
   odom.twist.twist.linear.y = vy;
   odom.twist.twist.angular.z = vth;
+
+  odom.twist.covariance[0] = 1e-9;
+  odom.twist.covariance[7] = 1e-3;
+  odom.twist.covariance[8] = 1e-9;
+  odom.twist.covariance[14] = 1e6;
+  odom.twist.covariance[21] = 1e6;
+  odom.twist.covariance[28] = 1e6;
+  odom.twist.covariance[35] = 1e-9;
 
   // SymmetricMatrix measNoiseOdom_Cov(6); measNoiseOdom_Cov = 0;
   odom.pose.covariance[0] = pow(10, -2); // = 0.01221 meters / sec
@@ -288,7 +289,7 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
         }
         case 0x84: {
           ROS_INFO("battery voltage: %f V",
-                   packet.payload.f32Array[0] / 1000.0f);
+                   packet.payload.f32Array[0] * 1200.0f / 1000.0f);
           break;
         }
         case 0x85: {
@@ -306,6 +307,12 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
             x += vxy * cos(th + vth * 0.5f);
             y += vxy * sin(th + vth * 0.5f);
             th += vth;
+            // 校正姿态角度，让机器人处于-180~180度之间
+            if (th > M_PI)
+              th -= M_PI * 2;
+            else if (th < (-M_PI))
+              th += M_PI * 2;
+
             publish_odom(odomPub, tfbc, x, y, th, vxy, 0, vth, current_time);
           }
           break;
@@ -336,13 +343,19 @@ int main(int argc, char **argv) {
   g_roverSerial.SetStopBits(StopBits::STOP_BITS_1);
   ROS_INFO("uart " ROVER_UART_FILE " opened");
 
-  // stop wheels
-  UartPacket packet;
-  packet.header = PACKET_HEADER;
-  packet.cmd = 0x02;
-  packet.payload.f32Array[0] = 0;
-  packet.payload.f32Array[1] = 0;
-  packet.checkSum = calcCheckSum(packet);
+  signal(SIGINT, sigintHandler);
+
+  {
+    // stop wheels
+    UartPacket packet;
+    packet.header = PACKET_HEADER;
+    packet.cmd = 0x02;
+    packet.payload.f32Array[0] = 0;
+    packet.payload.f32Array[1] = 0;
+    packet.checkSum = calcCheckSum(packet);
+    uint8_t *ptr = (uint8_t *)&packet;
+    g_roverSerial.Write(DataBuffer(ptr, ptr + UART_PACKET_LEN));
+  }
 
   ROS_INFO("initializing node...");
 
@@ -357,8 +370,6 @@ int main(int argc, char **argv) {
 
   ROS_INFO("subscribing topic /controller_input...");
   ros::Subscriber sub = n.subscribe("controller_input", 100, inputCallback);
-  ROS_INFO("subscribing topic /joy...");
-  ros::Subscriber sub2 = n.subscribe("joy", 100, joyInputCallback);
   ROS_INFO("subscribing topic /cmd_vel...");
   ros::Subscriber sub3 = n.subscribe("cmd_vel", 100, cmdVelCallback);
 
@@ -431,8 +442,9 @@ int main(int argc, char **argv) {
   }
 
   float mpuAccelScalar =
-      16384.0f / (float)(1 << theSensor.getFullScaleAccelRange());
-  int mpuGyroScalar = 131.0 / (float)(1 << theSensor.getFullScaleGyroRange());
+      (float)(1 << theSensor.getFullScaleAccelRange()) / 32767.0f;
+  int mpuGyroScalar =
+      (float)(1 << theSensor.getFullScaleGyroRange()) / 32767.0f;
 
   ros::Rate loop_rate(25);
   ROS_INFO("spin.");
@@ -445,18 +457,27 @@ int main(int argc, char **argv) {
                          &imu_raw[4], &imu_raw[5]);
 
     imu_data.linear_acceleration.x =
-        (float)imu_raw[0] * mpuAccelScalar * gravity_value;
+        (float)imu_raw[0] * mpuAccelScalar * 2.0f * gravity_value;
     imu_data.linear_acceleration.y =
-        (float)imu_raw[1] * mpuAccelScalar * gravity_value;
+        (float)imu_raw[1] * mpuAccelScalar * 2.0f * gravity_value;
     imu_data.linear_acceleration.z =
-        (float)imu_raw[2] * mpuAccelScalar * gravity_value;
+        (float)imu_raw[2] * mpuAccelScalar * -2.0f * gravity_value;
 
     imu_data.angular_velocity.x =
-        (float)imu_raw[3] * mpuGyroScalar * deg_to_rad_factor;
+        (float)imu_raw[3] * mpuGyroScalar * 250.0f * deg_to_rad_factor;
     imu_data.angular_velocity.y =
-        (float)imu_raw[4] * mpuGyroScalar * deg_to_rad_factor;
+        (float)imu_raw[4] * mpuGyroScalar * 250.0f * deg_to_rad_factor;
     imu_data.angular_velocity.z =
-        (float)imu_raw[5] * mpuGyroScalar * deg_to_rad_factor;
+        (float)imu_raw[5] * mpuGyroScalar * 250.0f * deg_to_rad_factor;
+
+    imu_data.linear_acceleration_covariance = {0.04, 0.00, 0.00, 0.00, 0.04,
+                                               0.00, 0.00, 0.00, 0.04};
+
+    imu_data.angular_velocity_covariance = {0.02, 0.00, 0.00, 0.00, 0.02,
+                                            0.00, 0.00, 0.00, 0.02};
+
+    imu_data.orientation_covariance = {0.0025, 0.0000, 0.0000, 0.0000, 0.0025,
+                                       0.0000, 0.0000, 0.0000, 0.0025};
 
     imu_data.header.frame_id = "base_link";
     imu_data.header.stamp = ros::Time::now();
