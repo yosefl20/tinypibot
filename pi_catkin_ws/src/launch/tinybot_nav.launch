@@ -22,18 +22,23 @@
   <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
     <param name="output_frame" value="odom"/>
     <param name="base_footprint_frame" value="base_footprint"/>
-    <param name="freq" value="20.0"/>
-    <param name="sensor_timeout" value="2.0"/>
+    <param name="freq" value="30.0"/>
+    <param name="sensor_timeout" value="1.0"/>
     <param name="odom_used" value="true"/>
     <param name="imu_used" value="true"/>
     <param name="vo_used" value="false"/>
     <param name="debug" value="false"/>
     <param name="self_diagnose" value="false"/>
   </node>
+
   <!-- <node pkg ="tf" type="static_transform_publisher" name="robot_footprint_to_base_link_bc" args="0 0 0.055 0 0 0 base_link base_footprint 30" /> -->
   <!-- <node pkg ="tf" type="static_transform_publisher" name="camera_to_base_link_bc" args="0.08 0.0 0.0525 0 0 0 base_link camera 30" /> -->
   <!-- <node pkg ="tf" type="static_transform_publisher" name="support_to_base_link_bc" args="0.0 0.0 0.115 0 0 0 base_link support 30" /> -->
   <!-- <node pkg ="tf" type="static_transform_publisher" name="laser_to_support_bc" args="0.0 0.0 0.1 0 0 0 support laser 30" /> -->
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find tinybot_nav)/maps/studio_f2.pgm 0.050000"/>
+
 
   <include file="$(find tinypibot_urdf)/launch/tinypibot.launch" />
 

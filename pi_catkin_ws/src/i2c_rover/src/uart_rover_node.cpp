@@ -173,15 +173,15 @@ void publish_odom(ros::Publisher &odomPub, tf2_ros::TransformBroadcaster &tfbc,
   geometry_msgs::TransformStamped odom_trans;
   odom_trans.header.stamp = current_time;
   odom_trans.header.frame_id = "odom";
-  odom_trans.child_frame_id = "base_link";
+  odom_trans.child_frame_id = "base_footprint";
 
   odom_trans.transform.translation.x = x;
   odom_trans.transform.translation.y = y;
   odom_trans.transform.translation.z = 0.0;
   odom_trans.transform.rotation = odom_quat;
 
-  // send the transform
-  tfbc.sendTransform(odom_trans);
+  // let ekf send the transform
+  // tfbc.sendTransform(odom_trans);
 
   odom.header.stamp = current_time;
   odom.header.frame_id = "odom";
