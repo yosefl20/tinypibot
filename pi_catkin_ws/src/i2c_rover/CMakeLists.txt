@@ -160,6 +160,7 @@ add_executable(
   src/mpu6050/MPU6050_6Axis_MotionApps20.cpp
   src/mpu6050/MPU6050.cpp
   src/mpu6050/thread.cpp
+  src/serial_port.cpp
 )
 
 ## Rename C++ executable without prefix
@@ -182,7 +183,6 @@ target_link_libraries(${PROJECT_NAME}_node
 target_link_libraries(uart_rover_node
   ${catkin_LIBRARIES}
   bcm2835
-  serial
   # i2c
 )
 

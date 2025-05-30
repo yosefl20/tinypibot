@@ -10,6 +10,7 @@
     <rosparam file="$(find tinybot_nav)/config/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find tinybot_nav)/config/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find tinybot_nav)/config/base_local_planner_params.yaml" command="load" />
-    <param name="controller_frequency" value="3.0" />
+    <rosparam file="$(find tinybot_nav)/config/recovery_behaviors.yaml" command="load" />
+    <param name="controller_frequency" value="10.0" />
   </node>
 </launch>

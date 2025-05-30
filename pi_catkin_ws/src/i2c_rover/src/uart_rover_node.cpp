@@ -7,11 +7,11 @@
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/Joy.h"
 #include "sensor_msgs/Range.h"
+#include "serial_port.h"
 #include "std_msgs/String.h"
 #include <cmath>
 #include <i2cdev/I2Cdev.h>
 #include <iostream>
-#include <libserial/SerialPort.h>
 #include <nav_msgs/Odometry.h>
 #include <signal.h>
 #include <span>
@@ -21,8 +21,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <vector>
-
-using namespace LibSerial;
 
 #define ROVER_UART_FILE "/dev/ttyAMA2"
 #define PACKET_HEADER 0xE7
@@ -64,18 +62,18 @@ static void sigintHandler(int sig) {
 
   printf("Tinybot shutdown...\n");
 
-  if (g_roverSerial.IsOpen()) {
-    // stop wheels
-    UartPacket packet;
-    packet.header = PACKET_HEADER;
-    packet.cmd = 0x02;
-    packet.payload.f32Array[0] = 0;
-    packet.payload.f32Array[1] = 0;
-    packet.checkSum = calcCheckSum(packet);
-    uint8_t *ptr = (uint8_t *)&packet;
-    g_roverSerial.Write(DataBuffer(ptr, ptr + UART_PACKET_LEN));
-    g_roverSerial.Close();
+  if (!g_roverSerial.isOpen()) {
+    g_roverSerial.open(ROVER_UART_FILE, 115200);
   }
+  // stop wheels
+  UartPacket packet;
+  packet.header = PACKET_HEADER;
+  packet.cmd = 0x02;
+  packet.payload.f32Array[0] = 0;
+  packet.payload.f32Array[1] = 0;
+  packet.checkSum = calcCheckSum(packet);
+  g_roverSerial.writeAll((uint8_t *)&packet, UART_PACKET_LEN);
+  g_roverSerial.close();
   ros::shutdown();
 }
 
@@ -142,8 +140,7 @@ void cmdVelCallback(const geometry_msgs::Twist &msg) {
 
     packet.checkSum = calcCheckSum(packet);
     // debugPrintPacket(packet);
-    uint8_t *ptr = (uint8_t *)&packet;
-    g_roverSerial.Write(DataBuffer(ptr, ptr + UART_PACKET_LEN));
+    g_roverSerial.writeAll((uint8_t *)&packet, UART_PACKET_LEN);
   } else {
     int8_t left = (int8_t)(maxThrottle * msg.linear.x -
                            maxThrottle * msg.angular.z * 0.5f);
@@ -209,8 +206,9 @@ void publish_odom(ros::Publisher &odomPub, tf2_ros::TransformBroadcaster &tfbc,
 
   odom.pose.covariance[21] = pow(10, 6); // = 0.41 degrees / sec
   odom.pose.covariance[28] = pow(10, 6); // = 0.41 degrees / sec
-  odom.pose.covariance[35] = pow(
-      10, 6); // 0.2;// pow(0.1,2) = 0.41 degrees / sec    //publish the message
+  odom.pose.covariance[35] =
+      pow(10,
+          6); // 0.2;// pow(0.1,2) = 0.41 degrees / sec    //publish the message
 
   odomPub.publish(odom);
 }
@@ -237,21 +235,31 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
     packet.payload.i32Array[0] = g_leftThrottle;
     packet.payload.i32Array[1] = g_rightThrottle;
     packet.checkSum = calcCheckSum(packet);
-    uint8_t *ptr = (uint8_t *)&packet;
-    g_roverSerial.Write(DataBuffer(ptr, ptr + UART_PACKET_LEN));
+    g_roverSerial.writeAll((uint8_t *)&packet, UART_PACKET_LEN);
     g_throttleChanged = false;
   } else {
     // reading from serial
-    try {
-      while (g_roverSerial.IsDataAvailable()) {
-        DataBuffer buf;
-        g_roverSerial.Read(buf, UART_PACKET_LEN, 2); // in 100hz
-        if (buf[0] != PACKET_HEADER || buf.size() < UART_PACKET_LEN) {
+    static UartPacket packet;
+    static int bytesRead = 0;
+    int tlen;
+    while (ros::ok()) {
+      if (bytesRead == 0) {
+        // try reading header
+        tlen = g_roverSerial.read((uint8_t *)&packet, 1);
+        if (tlen == 1 && packet.header != PACKET_HEADER) {
           ROS_WARN("incomplete packet, resume receiving.");
-          continue;
+          break;
         }
-        // ROS_INFO("packet received, %d bytes.", buf.size());
-        UartPacket &packet = *(UartPacket *)buf.data();
+        bytesRead = tlen;
+      }
+      tlen = g_roverSerial.read((uint8_t *)&packet + bytesRead,
+                                UART_PACKET_LEN - bytesRead);
+      if (tlen <= 0)
+        break;
+
+      bytesRead += tlen;
+      if (bytesRead == UART_PACKET_LEN) {
+        bytesRead = 0;
         // debugPrintPacket(packet);
         if (packet.checkSum != calcCheckSum(packet)) {
           ROS_WARN("invalid packet, expected cs = %d, packet.cs = %d",
@@ -319,8 +327,6 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
         }
         }
       }
-    } catch (ReadTimeout &e) {
-      // ROS_WARN("UART reading timedout");
     }
   }
   last_time = current_time;
@@ -334,13 +340,7 @@ int main(int argc, char **argv) {
   I2Cdev::enable(true);
 
   ROS_INFO("initializing uart...");
-  g_roverSerial.Open(ROVER_UART_FILE);
-  // 8N1
-  g_roverSerial.SetBaudRate(BaudRate::BAUD_115200);
-  g_roverSerial.SetCharacterSize(CharacterSize::CHAR_SIZE_8);
-  g_roverSerial.SetFlowControl(FlowControl::FLOW_CONTROL_NONE);
-  g_roverSerial.SetParity(Parity::PARITY_NONE);
-  g_roverSerial.SetStopBits(StopBits::STOP_BITS_1);
+  g_roverSerial.open(ROVER_UART_FILE, 115200);
   ROS_INFO("uart " ROVER_UART_FILE " opened");
 
   signal(SIGINT, sigintHandler);
@@ -353,8 +353,7 @@ int main(int argc, char **argv) {
     packet.payload.f32Array[0] = 0;
     packet.payload.f32Array[1] = 0;
     packet.checkSum = calcCheckSum(packet);
-    uint8_t *ptr = (uint8_t *)&packet;
-    g_roverSerial.Write(DataBuffer(ptr, ptr + UART_PACKET_LEN));
+    g_roverSerial.writeAll((uint8_t *)&packet, UART_PACKET_LEN);
   }
 
   ROS_INFO("initializing node...");
@@ -488,7 +487,7 @@ int main(int argc, char **argv) {
     loop_rate.sleep();
   }
   ros::shutdown();
-  g_roverSerial.Close();
+  g_roverSerial.close();
 
   return 0;
 }
