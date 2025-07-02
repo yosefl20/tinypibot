@@ -77,4 +77,17 @@ public:
   float m_percent;
 };
 
+// ----------------------------------------------------------------
+class ImuMessage : public SimpleMessage<1008> {
+public:
+  ImuMessage(int16_t accel_x, int16_t accel_y, int16_t accel_z,
+             int16_t accel_range, int16_t gyro_x, int16_t gyro_y,
+             int16_t gyro_z, int16_t gyro_range, int16_t q_w, int16_t q_x,
+             int16_t q_y, int16_t q_z);
+
+  int16_t m_accel[4];
+  int16_t m_gyro[4];
+  int16_t m_q[4];
+};
+
 #endif //_MSGS_H_

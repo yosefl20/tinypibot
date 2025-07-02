@@ -16,10 +16,9 @@ RoverTask::RoverTask()
     : m_motorA(TB6612_AIN1_PIN, TB6612_AIN2_PIN, TB6612_ENA_PIN),
       m_motorB(TB6612_BIN2_PIN, TB6612_BIN1_PIN, TB6612_ENB_PIN),
       m_encoderA(MA_TIMER_ID), m_encoderB(MB_TIMER_ID), m_leftThrottle(0),
-      m_rightThrottle(0), m_leftSpeed(0), m_rightSpeed(0), m_cycleTM(100),
+      m_rightThrottle(0), m_leftSpeed(0), m_rightSpeed(0), m_cycleTM(50),
       // Specify the links and initial tuning parameters
-      // m_Kp(0.1), m_Ki(0.03), m_Kd(0.002),
-      m_Kp(0.05), m_Ki(0.2), m_Kd(0.001),
+      m_Kp(0.02), m_Ki(0.03), m_Kd(0.002),
       m_pidA(&m_InputA, &m_OutputA, &m_SetpointA, m_Kp, m_Ki, m_Kd, DIRECT),
       m_pidB(&m_InputB, &m_OutputB, &m_SetpointB, m_Kp, m_Ki, m_Kd, DIRECT) {}
 
@@ -160,9 +159,10 @@ void RoverTask::initPID() {
 
   m_InputA = m_InputB = 0;
   m_SetpointA = m_SetpointB = 0;
-  m_pidA.SetOutputLimits(-255, 255);
+  m_pidA.SetSampleTime(m_cycleTM);
+  m_pidA.SetOutputLimits(-127, 127);
   m_pidA.SetMode(AUTOMATIC);
-  m_pidB.SetOutputLimits(-255, 255);
+  m_pidB.SetOutputLimits(-127, 127);
   m_pidB.SetMode(AUTOMATIC);
   m_OutputA = m_OutputB = 0;
 }
@@ -220,7 +220,7 @@ void RoverTask::applyPID() {
     m_motorA.stop();
     m_motorB.stop();
   } else {
-    m_motorA.setSpeedPWMAndDirection(m_OutputA * 0.702f);
+    m_motorA.setSpeedPWMAndDirection(m_OutputA);
     m_motorB.setSpeedPWMAndDirection(m_OutputB);
   }
 }

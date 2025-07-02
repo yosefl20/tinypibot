@@ -325,6 +325,18 @@ void updateChasis(ros::Publisher &odomPub, ros::Publisher &rangePub,
           }
           break;
         }
+        case 0x86: {
+          // imu ypr
+          break;
+        }
+        case 0x87: {
+          // imu accel
+          break;
+        }
+        case 0x88: {
+          // imu gyro
+          break;
+        }
         }
       }
     }
@@ -343,8 +355,6 @@ int main(int argc, char **argv) {
   g_roverSerial.open(ROVER_UART_FILE, 115200);
   ROS_INFO("uart " ROVER_UART_FILE " opened");
 
-  signal(SIGINT, sigintHandler);
-
   {
     // stop wheels
     UartPacket packet;
@@ -354,7 +364,11 @@ int main(int argc, char **argv) {
     packet.payload.f32Array[1] = 0;
     packet.checkSum = calcCheckSum(packet);
     g_roverSerial.writeAll((uint8_t *)&packet, UART_PACKET_LEN);
+    g_roverSerial.flush();
   }
+  sleep(1);
+
+  signal(SIGINT, sigintHandler);
 
   ROS_INFO("initializing node...");
 
@@ -447,6 +461,7 @@ int main(int argc, char **argv) {
 
   ros::Rate loop_rate(25);
   ROS_INFO("spin.");
+
   while (ros::ok()) {
     updateChasis(odom_pub, range_pub, odom_broadcaster);
 

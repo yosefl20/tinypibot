@@ -69,7 +69,48 @@ static void debugPrintUartPacket(const UartPacket &packet) {
   Serial.println("---------------------");
 }
 
-UartTask::UartTask() : m_recvLen(0), SerialPi(PI_TX_PIN, PI_RX_PIN) {}
+static void sendPacket(HardwareSerial &SerialPi, uint8_t cmd, int32_t d0,
+                       int32_t d1) {
+  UartPacket packet;
+  packet.header = PACKET_HEADER;
+  packet.cmd = cmd;
+  packet.payload.i32Array[0] = d0;
+  packet.payload.i32Array[1] = d1;
+  packet.checkSum = calcCheckSum(packet);
+  // debugPrintUartPacket(packet);
+  SerialPi.write((uint8_t *)&packet, UART_PACKET_LEN);
+  // Serial.println("packet sent");
+}
+
+static void sendPacket(HardwareSerial &SerialPi, uint8_t cmd, float f0,
+                       float f1) {
+  UartPacket packet;
+  packet.header = PACKET_HEADER;
+  packet.cmd = cmd;
+  packet.payload.f32Array[0] = f0;
+  packet.payload.f32Array[1] = f1;
+  packet.checkSum = calcCheckSum(packet);
+  // debugPrintUartPacket(packet);
+  SerialPi.write((uint8_t *)&packet, UART_PACKET_LEN);
+  // Serial.println("packet sent");
+}
+
+static void sendPacket(HardwareSerial &SerialPi, uint8_t cmd, int16_t d0,
+                       int16_t d1, int16_t d2, int16_t d3) {
+  UartPacket packet;
+  packet.header = PACKET_HEADER;
+  packet.cmd = cmd;
+  packet.payload.i16Array[0] = d0;
+  packet.payload.i16Array[1] = d1;
+  packet.payload.i16Array[2] = d2;
+  packet.payload.i16Array[3] = d3;
+  packet.checkSum = calcCheckSum(packet);
+  // debugPrintUartPacket(packet);
+  SerialPi.write((uint8_t *)&packet, UART_PACKET_LEN);
+  // Serial.println("packet sent");
+}
+
+UartTask::UartTask() : SerialPi(PI_TX_PIN, PI_RX_PIN) {}
 
 UartTask::~UartTask() {}
 
@@ -104,24 +145,53 @@ unsigned long UartTask::loop(MicroTasks::WakeReason reason) {
       switch (msg->id()) {
       case EncoderPositionMessage::ID: {
         EncoderPositionMessage *_msg = (EncoderPositionMessage *)msg;
-        sendPacket(0x82, _msg->m_left, _msg->m_right);
+        sendPacket(SerialPi, 0x82, _msg->m_left, _msg->m_right);
         break;
       }
       case DistanceMessage::ID: {
         DistanceMessage *_msg = (DistanceMessage *)msg;
-        sendPacket(0x83, _msg->m_distances[0], _msg->m_distances[1],
+        sendPacket(SerialPi, 0x83, _msg->m_distances[0], _msg->m_distances[1],
                    _msg->m_distances[2], _msg->m_distances[3]);
         break;
       }
       case BatteryMessage::ID: {
         BatteryMessage *_msg = (BatteryMessage *)msg;
-        sendPacket(0x84, (float)_msg->m_mV / 1000.0f, _msg->m_percent);
+        sendPacket(SerialPi, 0x84, (float)_msg->m_mV / 1000.0f,
+                   _msg->m_percent);
+        break;
+      }
+      case ImuMessage::ID: {
+        ImuMessage *_msg = (ImuMessage *)msg;
+        sendPacket(SerialPi, 0x86, _msg->m_q[0], _msg->m_q[1], _msg->m_q[2],
+                   _msg->m_q[3]);
+        sendPacket(SerialPi, 0x87, _msg->m_accel[0], _msg->m_accel[1],
+                   _msg->m_accel[2], _msg->m_accel[3]);
+        sendPacket(SerialPi, 0x88, _msg->m_gyro[0], _msg->m_gyro[1],
+                   _msg->m_gyro[2], _msg->m_gyro[3]);
         break;
       }
       }
       delete msg;
     }
   }
+
+  // Serial.println("uart loop end.");
+  return INFINITY;
+}
+
+UartRecvTask::UartRecvTask(HardwareSerial &serial)
+    : m_recvLen(0), SerialPi(serial) {}
+
+UartRecvTask::~UartRecvTask() {}
+
+void UartRecvTask::setup() {}
+
+unsigned long UartRecvTask::loop(MicroTasks::WakeReason reason) {
+  recvPackets();
+  return 2; // 500 hz
+}
+
+void UartRecvTask::recvPackets() {
 
   int available = SerialPi.available();
   while (available > 0) {
@@ -187,62 +257,22 @@ unsigned long UartTask::loop(MicroTasks::WakeReason reason) {
       }
       case 0x03: {
         // query ultrasonic | 0x03 | /
-        sendPacket(0x83, (int16_t)ultrasonicTask.distance(), 0, 0, 0);
+        sendPacket(SerialPi, 0x83, (int16_t)ultrasonicTask.distance(), 0, 0, 0);
         break;
       }
       case 0x04: {
         // query battery | 0x04 | /
-        sendPacket(0x84, batteryTask.batteryVoltage(),
+        sendPacket(SerialPi, 0x84, batteryTask.batteryVoltage(),
                    batteryTask.batteryVoltage() / 126.0f);
         break;
       }
       case 0x05: {
         // query speed | 0x05 | /
-        sendPacket(0x84, roverTask.leftSpeed(), roverTask.rightSpeed());
+        sendPacket(SerialPi, 0x84, roverTask.leftSpeed(),
+                   roverTask.rightSpeed());
         break;
       }
       }
     }
   }
-  // Serial.println("uart loop end.");
-  return 10; // running at 100Hz
-}
-
-void UartTask::sendPacket(uint8_t cmd, int32_t d0, int32_t d1) {
-  UartPacket packet;
-  packet.header = PACKET_HEADER;
-  packet.cmd = cmd;
-  packet.payload.i32Array[0] = d0;
-  packet.payload.i32Array[1] = d1;
-  packet.checkSum = calcCheckSum(packet);
-  // debugPrintUartPacket(packet);
-  SerialPi.write((uint8_t *)&packet, UART_PACKET_LEN);
-  // Serial.println("packet sent");
-}
-
-void UartTask::sendPacket(uint8_t cmd, float f0, float f1) {
-  UartPacket packet;
-  packet.header = PACKET_HEADER;
-  packet.cmd = cmd;
-  packet.payload.f32Array[0] = f0;
-  packet.payload.f32Array[1] = f1;
-  packet.checkSum = calcCheckSum(packet);
-  // debugPrintUartPacket(packet);
-  SerialPi.write((uint8_t *)&packet, UART_PACKET_LEN);
-  // Serial.println("packet sent");
-}
-
-void UartTask::sendPacket(uint8_t cmd, int16_t d0, int16_t d1, int16_t d2,
-                          int16_t d3) {
-  UartPacket packet;
-  packet.header = PACKET_HEADER;
-  packet.cmd = cmd;
-  packet.payload.i16Array[0] = d0;
-  packet.payload.i16Array[1] = d1;
-  packet.payload.i16Array[2] = d2;
-  packet.payload.i16Array[3] = d3;
-  packet.checkSum = calcCheckSum(packet);
-  // debugPrintUartPacket(packet);
-  SerialPi.write((uint8_t *)&packet, UART_PACKET_LEN);
-  // Serial.println("packet sent");
 }

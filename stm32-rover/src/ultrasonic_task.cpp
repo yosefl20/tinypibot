@@ -22,5 +22,5 @@ unsigned long UltrasonicTask::loop(MicroTasks::WakeReason reason) {
   m_distance = m_sensor1.read();
   uartTask.send(new DistanceMessage(m_distance, 0, 0, 0));
   // Serial.println("ultrasonic loop end.");
-  return 20; // 50hz
+  return 200; // 5hz
 }

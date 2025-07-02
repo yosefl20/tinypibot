@@ -5,4 +5,4 @@ recovery_behaviors:
     type: rotate_recovery/RotateRecovery
   - name: aggressive_reset
     type: clear_costmap_recovery/ClearCostmapRecovery
-recovery_behavior_enabled: true
+recovery_behavior_enabled: false

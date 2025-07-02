@@ -14,6 +14,15 @@ MCU | STM32F1C8T8
 摄像头 | 树莓派CSI摄像头
 电源 | 3S 18650, 1xDCDC模块
 
+## 接线
+
+stm32 | Pi4
+----- | --------
+PB8   | SCL(GPIO3)
+PB9   | SDA(GPIO2)
+PB10  | UART2 TX(GPIO0)
+PB11  | UART2 RX(GPIO1)
+
 ## 工程说明
 
 ### stm32-rover
@@ -49,4 +58,4 @@ mpu6050_driver | mpu6050驱动
 robot_pose_ekf | robot pose ekf功能包
 sc_mini | 单线激光雷达驱动
 teleop_twist_keyboard_cpp | 键盘操作功能包
-tinypibot_urdf | urdf包
+tinypibot_description | urdf包
